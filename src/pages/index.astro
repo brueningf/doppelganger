@@ -1,4 +1,20 @@
 ---
+let setIndex = [0, 1, 2, 3, 4, 5, 6, 7];
+const adventure = 'animal-crossing'
+const images = Array(8).fill(0).map((val, i) => {
+    let index = Math.floor(Math.random() * setIndex.length - 1)
+	let pos = setIndex[index]
+	setIndex.splice(index, 1)
+    
+    return {
+        filename: `${i+ 1}.png`,
+        rotation: Math.floor((Math.random() * 360)) + 'deg',
+        scale: (Math.random() * 1).toFixed(2),
+		position: Math.floor((Math.random() * 8))
+    }
+})
+
+
 
 ---
 
@@ -11,6 +27,10 @@
 		<title>Doppelganger</title>
 	</head>
 	<body>
-        
+        <div class="mx-auto my-10 w-[800px] h-[600px] border">
+            {images.map((v, i) => {
+                return <img src={`images/${adventure}/${v.filename}`} class={`w-12 h-12 rotate-[${v.rotation}]`}>
+            })}
+        </div>
 	</body>
 </html>
