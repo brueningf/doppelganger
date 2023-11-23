@@ -1,36 +1,111 @@
 ---
-let setIndex = [0, 1, 2, 3, 4, 5, 6, 7];
-const adventure = 'animal-crossing'
-const images = Array(8).fill(0).map((val, i) => {
-    let index = Math.floor(Math.random() * setIndex.length - 1)
-	let pos = setIndex[index]
-	setIndex.splice(index, 1)
-    
-    return {
-        filename: `${i+ 1}.png`,
-        rotation: Math.floor((Math.random() * 360)) + 'deg',
-        scale: (Math.random() * 1).toFixed(2),
-		position: Math.floor((Math.random() * 8))
+// utils
+const random = (max, min = 0, f = true) =>
+    f ? Math.floor(Math.random() * (max - min) + min) : Math.random() * max;
+
+const coords = (number, arr = []) => {
+    const frags = 360 / number;
+    for (let i = 0; i <= number; i++) arr.push((frags / 180) * i * Math.PI);
+    return arr;
+};
+
+// fetch current scenario
+const scenario = "animal-crossing";
+
+// build image array
+const images = Array(8)
+    .fill(0)
+    .map((val, i) => {
+        return {
+            filename: `${i + 1}.png`,
+            rotation: Math.floor(Math.random() * 360) + "deg",
+            scale: (Math.random() * 1).toFixed(2),
+            position: null
+        };
+    });
+
+// random sort images for new scenario
+// todo
+
+const positions = [];
+
+for (let i = 1; i <= 2; i++) {
+    const r = 90 * i;
+    const theta = coords(5 * i);
+    for (let j = 0; j < theta.length; j++) {
+    positions.push({
+            d: theta[j],
+            r: r,
+            color: `hsl(
+                ${random(50, 25)},
+                ${random(90, 50)}%,
+                ${random(90, 60)}%)`,
+        });
     }
-})
+}
 
+for(let i = 0; i < images.length; i++) {
+    // choose random
+    // delete
+    images[i].position = positions.shift()
+}
 
+console.log(images)
 
 ---
 
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Doppelganger</title>
-	</head>
-	<body>
-        <div class="mx-auto my-10 w-[800px] h-[600px] border">
-            {images.map((v, i) => {
-                return <img src={`images/${adventure}/${v.filename}`} class={`w-12 h-12 rotate-[${v.rotation}]`}>
-            })}
+    <head>
+        <meta charset="utf-8" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <meta name="viewport" content="width=device-width" />
+        <meta name="generator" content={Astro.generator} />
+        <title>Doppelganger</title>
+    </head>
+    <body class="h-[100vh] bg-stone-300 flex items-center">
+        <ul class="elements mx-auto w-[400px] h-[400px] border bg-slate-200 shadow-lg">
+            {
+                images.map((v, i) => {
+                    return (
+                        <li style={`--_d:${v.position.d};--_r:${v.position.r}px;--_bgc:${v.position.bgc};`}>
+                            <img
+                                src={`images/${scenario}/${v.filename}`}
+                                class={`w-16 roate-[${v.rotation}]`}
+                            />
+                        </li>
+                    );
+                })
+            }
         </div>
-	</body>
+    </body>
 </html>
+<style lang="scss">
+    .elements {
+        --_w: 400px;
+        --_sz: 30px;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        list-style-type: none;
+        inline-size: var(--_w);
+        padding: unset;
+        position: relative;
+    }
+    .elements li {
+        --_x: calc(200px - (var(--_r) * cos(var(--_d))));
+        --_y: calc(200px - (var(--_r) * sin(var(--_d))));
+        background-color: var(--_bgc);
+        border-radius: 50%;
+        height: var(--_sz);
+        left: var(--_x);
+        position: absolute;
+        top: var(--_y);
+        width: var(--_sz);
+    }
+
+    @supports not (left: calc(1px * cos(45deg))) {
+        // support note
+        p {
+            display: block;
+        }
+    }
+</style>
