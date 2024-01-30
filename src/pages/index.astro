@@ -1,56 +1,37 @@
 ---
-// utils
-const random = (max, min = 0, f = true) =>
-    f ? Math.floor(Math.random() * (max - min) + min) : Math.random() * max;
+import { random, shuffle, chunk, take } from 'lodash'
 
-const coords = (number, arr = []) => {
-    const frags = 360 / number;
-    for (let i = 0; i <= number; i++) arr.push((frags / 180) * i * Math.PI);
-    return arr;
-};
+// fetch images from server
+const images = Array.from(Array(21), (x, i) => `${i+ 1}.png`)
+const scenario = "animal-crossing";
+const shuffledImages = shuffle(images)
+const keyImage = shuffledImages.pop()
+let chunks = chunk(shuffledImages, 7)
+chunks = take(chunks, 2)
+
+for(let chunk of chunks) {
+    chunk.push(keyImage)
+    chunk = shuffle(chunk)
+}
+
+// pick one random image to be the common image in two sets
+// pick random 14 images into two arrays
+// 
+
 
 // fetch current scenario
-const scenario = "animal-crossing";
 
-// build image array
-const images = Array(8)
-    .fill(0)
-    .map((val, i) => {
-        return {
-            filename: `${i + 1}.png`,
-            rotation: Math.floor(Math.random() * 360) + "deg",
-            scale: (Math.random() * 1).toFixed(2),
-            position: null
-        };
-    });
+// // build image array
+// const images = Array(8)
+//     .fill(0)
+//     .map((val, i) => {
+//         return {
+//             filename: `${i + 1}.png`,
+//             rotation: random(1, 360) + "deg",
+//             scale: (Math.random() * 1).toFixed(2),
+//         };
+//     });
 
-// random sort images for new scenario
-// todo
-
-const positions = [];
-
-for (let i = 1; i <= 2; i++) {
-    const r = 90 * i;
-    const theta = coords(5 * i);
-    for (let j = 0; j < theta.length; j++) {
-    positions.push({
-            d: theta[j],
-            r: r,
-            color: `hsl(
-                ${random(50, 25)},
-                ${random(90, 50)}%,
-                ${random(90, 60)}%)`,
-        });
-    }
-}
-
-for(let i = 0; i < images.length; i++) {
-    // choose random
-    // delete
-    images[i].position = positions.shift()
-}
-
-console.log(images)
 
 ---
 
@@ -63,26 +44,28 @@ console.log(images)
         <title>Doppelganger</title>
     </head>
     <body class="h-[100vh] bg-stone-300 flex items-center">
-        <ul class="elements mx-auto w-[400px] h-[400px] border bg-slate-200 shadow-lg">
+        <ul
+            class="elements flex flex-wrap mx-auto w-[400px] h-[400px] border bg-slate-200 shadow-lg"
+        >
             {
                 images.map((v, i) => {
                     return (
-                        <li style={`--_d:${v.position.d};--_r:${v.position.r}px;--_bgc:${v.position.bgc};`}>
+                        <li class="w-1/3 flex items-center justify-around"
+                        >
                             <img
                                 src={`images/${scenario}/${v.filename}`}
-                                class={`w-16 roate-[${v.rotation}]`}
+                                class={`w-12 rotate-[${v.rotation}]`}
                             />
                         </li>
                     );
                 })
             }
-        </div>
+        </ul>
     </body>
 </html>
 <style lang="scss">
     .elements {
         --_w: 400px;
-        --_sz: 30px;
         aspect-ratio: 1;
         border-radius: 50%;
         list-style-type: none;
@@ -91,15 +74,7 @@ console.log(images)
         position: relative;
     }
     .elements li {
-        --_x: calc(200px - (var(--_r) * cos(var(--_d))));
-        --_y: calc(200px - (var(--_r) * sin(var(--_d))));
-        background-color: var(--_bgc);
-        border-radius: 50%;
-        height: var(--_sz);
-        left: var(--_x);
-        position: absolute;
-        top: var(--_y);
-        width: var(--_sz);
+
     }
 
     @supports not (left: calc(1px * cos(45deg))) {
