@@ -4,5 +4,8 @@ dist/
 # python stuff
 venv/
 
+# sqlite db
+games.db
+
 # macOS-specific files
 .DS_Store
