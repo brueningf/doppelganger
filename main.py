@@ -1,9 +1,10 @@
 import os
+import math
 import shutil
 import sqlite3
 import tkinter as tk
 from tkinter import messagebox, filedialog
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw
 
 
 class Game:
@@ -136,7 +137,7 @@ def show_game_detail(game):
     for image in images:
         image_path = os.path.join(subfolder_path, image)
         resized_image = resize_image(image_path, 100)
-        img = ImageTk.PhotoImage(file=resized_image)
+        img = ImageTk.PhotoImage(image=resized_image)
         label = tk.Label(root, image=img)
         label.image = img
         label.pack(pady=5)
@@ -145,11 +146,91 @@ def show_game_detail(game):
     tk.Label(root, text=f"Difficulty: {game.difficulty}").pack(pady=10)
     tk.Button(root, text="Add Photos (Unimplemented)", command=lambda: messagebox.showinfo(
         "Info", "Feature not implemented")).pack(pady=5)
+    tk.Button(root, text="Generate PDF",
+              command=generate_pdf(game)).pack(pady=5)
     tk.Button(root, text="Back to Dashboard",
               command=show_dashboard).pack(pady=5)
 
 
+def generate_pdf(game):
+    create_pdf(os.path.join('images', str(game.id)), f"{game.name}.pdf")
+
+
+def create_circular_mask(size):
+    mask = Image.new("L", size, 0)
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse((0, 0) + size, fill=255)
+    return mask
+
+
+def create_circle_with_images(image_paths, circle_diameter):
+    circle_image = Image.new(
+        "RGBA", (circle_diameter, circle_diameter), (255, 255, 255, 0))
+    mask = create_circular_mask((circle_diameter, circle_diameter))
+
+    num_images = len(image_paths)
+    angle_step = 360 / num_images
+    radius = circle_diameter // 2
+
+    for i, image_path in enumerate(image_paths):
+        image = Image.open(image_path).convert("RGBA")
+        max_image_size = circle_diameter // 3  # Adjust this size if needed
+        image.thumbnail((max_image_size, max_image_size))
+
+        angle = i * angle_step
+        x = radius + int(radius * math.cos(math.radians(angle))
+                         ) - image.width // 2
+        y = radius + int(radius * math.sin(math.radians(angle))
+                         ) - image.height // 2
+
+        circle_image.paste(image, (x, y), image)
+
+    circle_image = Image.composite(circle_image, Image.new(
+        "RGBA", (circle_diameter, circle_diameter), (255, 255, 255, 0)), mask)
+    return circle_image
+
+
+def create_pdf(image_folder, output_pdf):
+    pdf_width, pdf_height = 595, 842  # A4 size in points (1 point = 1/72 inch)
+    padding = 20
+    # Adjust number of circles per row if needed
+    circle_diameter = (pdf_width - 2 * padding) // 3
+
+    image_files = [os.path.join(image_folder, f) for f in os.listdir(
+        image_folder) if f.endswith(('jpg', 'png', 'jpeg'))]
+
+    # Group images into sets for each circle
+    num_images_per_circle = 3  # Adjust number of images per circle if needed
+    image_groups = [image_files[i:i + num_images_per_circle]
+                    for i in range(0, len(image_files), num_images_per_circle)]
+
+    circles_per_row = int(pdf_width // (circle_diameter + padding))
+    rows_per_page = int(pdf_height // (circle_diameter + padding))
+    total_circles_per_page = circles_per_row * rows_per_page
+
+    pages = []
+    for i in range(0, len(image_groups), total_circles_per_page):
+        page = Image.new("RGB", (pdf_width, pdf_height), "white")
+        page_image_groups = image_groups[i:i + total_circles_per_page]
+
+        for row in range(rows_per_page):
+            for col in range(circles_per_row):
+                index = row * circles_per_row + col
+                if index < len(page_image_groups):
+                    circle_images = page_image_groups[index]
+                    circle_image = create_circle_with_images(
+                        circle_images, circle_diameter)
+                    x = padding + col * (circle_diameter + padding)
+                    y = padding + row * (circle_diameter + padding)
+                    page.paste(circle_image, (x, y), circle_image)
+        pages.append(page)
+
+    if pages:
+        pages[0].save(output_pdf, save_all=True, append_images=pages[1:])
+
 # A dashboard where games can be added, and listed
+
+
 def show_dashboard():
     for widget in root.winfo_children():
         widget.destroy()
