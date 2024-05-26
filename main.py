@@ -159,7 +159,7 @@ def generate_pdf(game):
 def create_circular_mask(size):
     mask = Image.new("L", size, 0)
     draw = ImageDraw.Draw(mask)
-    draw.ellipse((0, 0) + size, fill=255)
+    draw.ellipse((0, 0) + size, fill=255, outline=0)
     return mask
 
 
@@ -170,11 +170,11 @@ def create_circle_with_images(image_paths, circle_diameter):
 
     num_images = len(image_paths)
     angle_step = 360 / num_images
-    radius = circle_diameter // 2
+    radius = circle_diameter // 3  # adjust radius for distance to center
 
     for i, image_path in enumerate(image_paths):
         image = Image.open(image_path).convert("RGBA")
-        max_image_size = circle_diameter // 3  # Adjust this size if needed
+        max_image_size = circle_diameter // 4  # Adjust this size if needed
         image.thumbnail((max_image_size, max_image_size))
 
         angle = i * angle_step
@@ -200,7 +200,7 @@ def create_pdf(image_folder, output_pdf):
         image_folder) if f.endswith(('jpg', 'png', 'jpeg'))]
 
     # Group images into sets for each circle
-    num_images_per_circle = 3  # Adjust number of images per circle if needed
+    num_images_per_circle = 5  # Adjust number of images per circle if needed
     image_groups = [image_files[i:i + num_images_per_circle]
                     for i in range(0, len(image_files), num_images_per_circle)]
 
