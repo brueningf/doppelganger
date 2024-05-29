@@ -13,6 +13,17 @@ class Game:
         self.name = name
         self.difficulty = difficulty
 
+    def pdf_file(self):
+        base_path = 'documents'
+        # folder should exist
+        os.makedirs(base_path, exist_ok=True)
+        filename = f"{self.name.replace(' ', '-').lower()}.pdf"
+        path = os.path.join(base_path, filename)
+        return path
+
+    def pdf_file_exists(self):
+        return os.path.isfile(self.pdf_file())
+
 
 def resize_image(filename, new_width):
     original_image = Image.open(filename)
@@ -148,12 +159,22 @@ def show_game_detail(game):
         "Info", "Feature not implemented")).pack(pady=5)
     tk.Button(root, text="Generate PDF",
               command=generate_pdf(game)).pack(pady=5)
+
+    file = game.pdf_file()
+    if file:
+        tk.Button(root, text="View PDF",
+                  command=view_pdf(game)).pack(pady=5)
+
     tk.Button(root, text="Back to Dashboard",
               command=show_dashboard).pack(pady=5)
 
 
 def generate_pdf(game):
-    create_pdf(os.path.join('images', str(game.id)), f"{game.name}.pdf")
+    create_pdf(os.path.join('images', str(game.id)), game.pdf_file())
+
+
+def view_pdf(game):
+    os.system(game.pdf_file())
 
 
 def create_circular_mask(size):

@@ -1,3 +1,7 @@
+# generated files
+documents/
+images/
+
 # build output
 dist/
 
