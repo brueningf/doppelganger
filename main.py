@@ -2,6 +2,7 @@ import os
 import math
 import shutil
 import sqlite3
+import webbrowser
 import tkinter as tk
 from tkinter import messagebox, filedialog
 from PIL import Image, ImageTk, ImageDraw
@@ -163,7 +164,7 @@ def show_game_detail(game):
     file = game.pdf_file()
     if file:
         tk.Button(root, text="View PDF",
-                  command=view_pdf(game)).pack(pady=5)
+                  command=lambda: view_pdf(game)).pack(pady=5)
 
     tk.Button(root, text="Back to Dashboard",
               command=show_dashboard).pack(pady=5)
@@ -174,40 +175,43 @@ def generate_pdf(game):
 
 
 def view_pdf(game):
-    os.system(game.pdf_file())
+    webbrowser.open_new(game.pdf_file())
 
 
 def create_circular_mask(size):
     mask = Image.new("L", size, 0)
     draw = ImageDraw.Draw(mask)
-    draw.ellipse((0, 0) + size, fill=255, outline=0)
+    draw.ellipse((0, 0) + size, fill=255, outline=(0,))
     return mask
 
 
 def create_circle_with_images(image_paths, circle_diameter):
     circle_image = Image.new(
-        "RGBA", (circle_diameter, circle_diameter), (255, 255, 255, 0))
+        "RGBA", (circle_diameter, circle_diameter), (255, 255, 255, 255))
     mask = create_circular_mask((circle_diameter, circle_diameter))
 
     num_images = len(image_paths)
     angle_step = 360 / num_images
-    radius = circle_diameter // 3  # adjust radius for distance to center
+    radius = circle_diameter // 2  # adjust radius for distance to center
+    radius = radius - 30
 
     for i, image_path in enumerate(image_paths):
         image = Image.open(image_path).convert("RGBA")
-        max_image_size = circle_diameter // 4  # Adjust this size if needed
+        max_image_size = circle_diameter // 3  # Adjust this size if needed
         image.thumbnail((max_image_size, max_image_size))
 
         angle = i * angle_step
-        x = radius + int(radius * math.cos(math.radians(angle))
-                         ) - image.width // 2
-        y = radius + int(radius * math.sin(math.radians(angle))
-                         ) - image.height // 2
-
+        x = radius + int(radius * math.cos(math.radians(angle)))
+        y = radius + int(radius * math.sin(math.radians(angle)))
         circle_image.paste(image, (x, y), image)
 
     circle_image = Image.composite(circle_image, Image.new(
         "RGBA", (circle_diameter, circle_diameter), (255, 255, 255, 0)), mask)
+    draw = ImageDraw.Draw(circle_image)
+    draw.ellipse((0, 0, circle_diameter, circle_diameter), outline=0)
+    draw.line((0, 0, 40, 40), fill=128)
+    # testing
+
     return circle_image
 
 
@@ -215,23 +219,34 @@ def create_pdf(image_folder, output_pdf):
     pdf_width, pdf_height = 595, 842  # A4 size in points (1 point = 1/72 inch)
     padding = 20
     # Adjust number of circles per row if needed
-    circle_diameter = (pdf_width - 2 * padding) // 3
+    circle_diameter = (pdf_width - 3 * padding) // 3
 
     image_files = [os.path.join(image_folder, f) for f in os.listdir(
         image_folder) if f.endswith(('jpg', 'png', 'jpeg'))]
-
-    # Group images into sets for each circle
-    num_images_per_circle = 5  # Adjust number of images per circle if needed
-    image_groups = [image_files[i:i + num_images_per_circle]
-                    for i in range(0, len(image_files), num_images_per_circle)]
 
     circles_per_row = int(pdf_width // (circle_diameter + padding))
     rows_per_page = int(pdf_height // (circle_diameter + padding))
     total_circles_per_page = circles_per_row * rows_per_page
 
+    # Group images into sets for each circle
+    num_images_per_circle = 5  # Adjust number of images per circle if needed
+    total_images_per_page = total_circles_per_page * num_images_per_circle
+
+    # Duplicate images if needed without exceeding the total number of images
+    while len(image_files) < total_images_per_page:
+        num_missing_images = total_images_per_page - len(image_files)
+        num_to_add = min(num_missing_images, len(image_files))
+        image_files += image_files[:num_to_add]
+
+    image_groups = [image_files[i:i + num_images_per_circle]
+                    for i in range(0, len(image_files), num_images_per_circle)]
+
+    print(f"Total circles per page: {total_circles_per_page}")
+    print(f"Circles per row: {circles_per_row}")
+
     pages = []
     for i in range(0, len(image_groups), total_circles_per_page):
-        page = Image.new("RGB", (pdf_width, pdf_height), "white")
+        page = Image.new("RGB", (pdf_width, pdf_height), "black")
         page_image_groups = image_groups[i:i + total_circles_per_page]
 
         for row in range(rows_per_page):
@@ -241,6 +256,7 @@ def create_pdf(image_folder, output_pdf):
                     circle_images = page_image_groups[index]
                     circle_image = create_circle_with_images(
                         circle_images, circle_diameter)
+                    circle_image
                     x = padding + col * (circle_diameter + padding)
                     y = padding + row * (circle_diameter + padding)
                     page.paste(circle_image, (x, y), circle_image)
