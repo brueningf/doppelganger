@@ -4,6 +4,8 @@ images/
 
 # build output
 dist/
+build/
+main.spec
 
 # python stuff
 venv/
