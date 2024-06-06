@@ -55,12 +55,6 @@ def add_game():
                                    "Please select at least one image.")
             return
 
-        print(image_files)
-
-        # Store images in a list
-        images = [os.path.basename(image) for image in image_files]
-        print(images)
-
         # Insert the game into the database
         conn = sqlite3.connect('games.db')
         cursor = conn.cursor()
@@ -73,8 +67,6 @@ def add_game():
         conn.close()
 
         try:
-            # Fetch the game ID from the database
-
             # Create the subfolder in the images directory using the game ID
             images_dir = 'images'
             subfolder_path = os.path.join(images_dir, str(game_id))
@@ -146,14 +138,6 @@ def show_game_detail(game):
     subfolder_path = os.path.join('images', str(game.id))
     images = os.listdir(subfolder_path)
 
-    for image in images:
-        image_path = os.path.join(subfolder_path, image)
-        resized_image = resize_image(image_path, 100)
-        img = ImageTk.PhotoImage(image=resized_image)
-        label = tk.Label(root, image=img)
-        label.image = img
-        label.pack(pady=5)
-
     tk.Label(root, text=f"Game: {game.name}").pack(pady=10)
     tk.Label(root, text=f"Difficulty: {game.difficulty}").pack(pady=10)
     tk.Button(root, text="Add Photos (Unimplemented)", command=lambda: messagebox.showinfo(
@@ -168,6 +152,26 @@ def show_game_detail(game):
 
     tk.Button(root, text="Back to Dashboard",
               command=show_dashboard).pack(pady=5)
+
+    frame = tk.Frame(root)
+    frame.pack()
+
+    # image grid
+    col = 0
+    row = 0
+    for image in images:
+        image_path = os.path.join(subfolder_path, image)
+        resized_image = resize_image(image_path, 50)
+        img = ImageTk.PhotoImage(image=resized_image)
+        label = tk.Label(frame, image=img)
+        label.image = img
+        label.grid(column=col, row=row, ipadx=5, pady=5)
+
+        if col == 5:
+            col = 0
+            row += 1
+        else:
+            col += 1
 
 
 def generate_pdf(game):
@@ -208,16 +212,17 @@ def create_circle_with_images(image_paths, circle_diameter):
     circle_image = Image.composite(circle_image, Image.new(
         "RGBA", (circle_diameter, circle_diameter), (255, 255, 255, 0)), mask)
     draw = ImageDraw.Draw(circle_image)
-    draw.ellipse((0, 0, circle_diameter, circle_diameter), outline=0)
-    draw.line((0, 0, 40, 40), fill=128)
-    # testing
+
+    # todo: add outline to circle for easy cutting
+    # if possible dashed line
+    draw.ellipse((-5, -5, circle_diameter + 5, circle_diameter + 5), outline='black')
 
     return circle_image
 
 
 def create_pdf(image_folder, output_pdf):
     pdf_width, pdf_height = 595, 842  # A4 size in points (1 point = 1/72 inch)
-    padding = 20
+    padding = 15
     # Adjust number of circles per row if needed
     circle_diameter = (pdf_width - 3 * padding) // 3
 
@@ -241,12 +246,9 @@ def create_pdf(image_folder, output_pdf):
     image_groups = [image_files[i:i + num_images_per_circle]
                     for i in range(0, len(image_files), num_images_per_circle)]
 
-    print(f"Total circles per page: {total_circles_per_page}")
-    print(f"Circles per row: {circles_per_row}")
-
     pages = []
     for i in range(0, len(image_groups), total_circles_per_page):
-        page = Image.new("RGB", (pdf_width, pdf_height), "black")
+        page = Image.new("RGB", (pdf_width, pdf_height), "white")
         page_image_groups = image_groups[i:i + total_circles_per_page]
 
         for row in range(rows_per_page):
@@ -265,9 +267,8 @@ def create_pdf(image_folder, output_pdf):
     if pages:
         pages[0].save(output_pdf, save_all=True, append_images=pages[1:])
 
+
 # A dashboard where games can be added, and listed
-
-
 def show_dashboard():
     for widget in root.winfo_children():
         widget.destroy()
@@ -296,7 +297,7 @@ def show_dashboard():
     entry_difficulty = tk.Entry(frame)
     entry_difficulty.grid(row=1, column=1)
 
-    tk.Button(frame, text="Add Game", command=add_game).grid(
+    tk.Button(frame, text="Add images and create game", command=add_game).grid(
         row=2, columnspan=2, pady=5)
 
 
@@ -325,8 +326,7 @@ conn.close()
 # Tkinter GUI setup
 root = tk.Tk()
 root.title("Dobble Game Generator")
-content = tk.Frame(root)
-frame = tk.Frame(content, borderwidth=5, relief="ridge", width=200, height=100)
+root.geometry("800x600")
 
 # Show the dashboard initially
 show_dashboard()
