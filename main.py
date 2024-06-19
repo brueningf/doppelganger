@@ -284,21 +284,22 @@ def show_dashboard():
     load_games()
 
     # Entry fields and button for adding a game
-    frame = tk.Frame(root, borderwidth=5, width=100, height=100)
+    frame = tk.Frame(root, borderwidth=5, width=100, height=100, bg="lightgrey")
     frame.pack(pady=10)
 
-    tk.Label(frame, text="Game Name:").grid(row=0, column=0)
+    tk.Label(frame, text="Create Game").grid(row=0, column=0, columnspan=2, pady=5)
+    tk.Label(frame, text="Game Name:").grid(row=1, column=0)
     global entry_name
     entry_name = tk.Entry(frame)
-    entry_name.grid(row=0, column=1)
+    entry_name.grid(row=1, column=1)
 
-    tk.Label(frame, text="Difficulty:").grid(row=1, column=0)
+    tk.Label(frame, text="Difficulty:").grid(row=2, column=0)
     global entry_difficulty
     entry_difficulty = tk.Entry(frame)
-    entry_difficulty.grid(row=1, column=1)
+    entry_difficulty.grid(row=2, column=1)
 
     tk.Button(frame, text="Add images and create game", command=add_game).grid(
-        row=2, columnspan=2, pady=5)
+        row=3, columnspan=2, pady=5)
 
 
 # Create database and table
