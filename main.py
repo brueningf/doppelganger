@@ -43,7 +43,16 @@ def resize_image(filename, new_width):
             original_image = original_image.convert('RGB')
         
         original_width, original_height = original_image.size
-        new_height = int((new_width / original_width) * original_height)
+        
+        # Calculate new dimensions maintaining aspect ratio
+        if original_width > original_height:
+            # Landscape image - fit to width
+            new_height = int((new_width / original_width) * original_height)
+        else:
+            # Portrait or square image - fit to height
+            new_height = new_width
+            new_width = int((new_height / original_height) * original_width)
+        
         resized_image = original_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
         print(f"Resized image from {original_width}x{original_height} to {new_width}x{new_height}")
         return resized_image
@@ -123,6 +132,10 @@ def select_game(event):
 def show_game_detail(game):
     for widget in root.winfo_children():
         widget.destroy()
+    
+    # Global variable to store image references (prevent garbage collection)
+    global game_image_references
+    game_image_references = []
 
     # Main container
     main_container = tk.Frame(root, bg="#f5f5f5")
@@ -220,27 +233,17 @@ def show_game_detail(game):
     tk.Label(gallery_header, text=f"🖼️ Image Gallery ({len(images)} images)", 
             font=("Arial", 14, "bold"), fg="white", bg="#e74c3c").pack(expand=True)
 
-    # Gallery content with scrollbar
+    # Gallery content - simplified without scrollbar for testing
     gallery_content = tk.Frame(gallery_frame, bg="white")
     gallery_content.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-    # Create canvas for scrollable gallery
-    canvas = tk.Canvas(gallery_content, bg="white")
-    scrollbar = tk.Scrollbar(gallery_content, orient=tk.VERTICAL, command=canvas.yview)
-    scrollable_frame = tk.Frame(canvas, bg="white")
-
-    scrollable_frame.bind(
-        "<Configure>",
-        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-    )
-
-    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-    canvas.configure(yscrollcommand=scrollbar.set)
+    # Use a simple frame instead of canvas for now
+    scrollable_frame = tk.Frame(gallery_content, bg="white")
+    scrollable_frame.pack(fill=tk.BOTH, expand=True)
 
     # Display images in a grid
     if images:
-        # Keep a list to maintain references to images
-        image_references = []
+        print(f"Loading {len(images)} images for gallery display")
         
         # Calculate grid layout
         images_per_row = 3  # Reduced to make room for remove buttons
@@ -258,19 +261,30 @@ def show_game_detail(game):
                 resized_image = resize_image(image_path, 100)  # Larger thumbnails
                 print(f"Image resized successfully: {resized_image.size}")
                 
+                # Verify the image has content
+                if resized_image.size[0] == 0 or resized_image.size[1] == 0:
+                    raise ValueError("Resized image has zero dimensions")
+                
                 # Convert to PhotoImage
                 img = ImageTk.PhotoImage(image=resized_image)
-                image_references.append(img)  # Keep reference to prevent garbage collection
-                print(f"PhotoImage created successfully")
+                game_image_references.append(img)  # Keep reference to prevent garbage collection
+                print(f"PhotoImage created successfully with size: {resized_image.size}")
                 
                 # Create image container
                 img_container = tk.Frame(scrollable_frame, bg="white", relief=tk.RAISED, bd=1)
                 img_container.grid(row=i // images_per_row, column=i % images_per_row, 
                                  padx=5, pady=5, sticky="nsew")
                 
-                # Image label with explicit size
-                img_label = tk.Label(img_container, image=img, bg="white", width=100, height=100)
+                # Image label without size constraints to allow proper image display
+                img_label = tk.Label(img_container, image=img, bg="white")
                 img_label.pack(padx=5, pady=(5, 0))
+                print(f"Image label created and packed for: {image}")
+                
+                # Test if the image is actually set
+                if img_label.cget("image") == "":
+                    print(f"WARNING: Image not set on label for {image}")
+                else:
+                    print(f"SUCCESS: Image properly set on label for {image}")
                 
                 # Image name label with black text
                 name_label = tk.Label(img_container, text=image[:15] + "..." if len(image) > 15 else image,
@@ -312,9 +326,8 @@ def show_game_detail(game):
         tk.Label(no_images_frame, text="Click 'Add Photos' to get started!", 
                 font=("Arial", 12), bg="white", fg="black").pack(pady=10)
 
-    # Pack canvas and scrollbar
-    canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    # No canvas needed for simple frame approach
+    print("Gallery frame configured successfully")
 
 
 def generate_pdf(game):
